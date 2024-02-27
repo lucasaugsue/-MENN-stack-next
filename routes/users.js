@@ -92,15 +92,9 @@ router.delete('/delete/:id', async function(req, res, next) {
   try {
     const { id } = req.params;
 
-    const user = await collection.findOne({ _id: new ObjectId(id) });
+    const result = await collection.findOneAndDelete({ _id: new ObjectId(id) });
 
-    if (!user) {
-      return res.status(404).json({ message: 'Usuário não encontrado.' });
-    }
-
-    const result = await collection.findOneAndDelete({ _id: id });
-
-    if (result.deletedCount === 0) {
+    if (!result || result.deletedCount === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
 
