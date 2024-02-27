@@ -16,19 +16,15 @@ async function connectToMongoDB() {
     }
   });
 
-  try {
-    await client.connect();
+  await client.connect();
 
-    const database = client.db("menn-stack-mongodb");
-    collection = database.collection("users");
+  const database = client.db("menn-stack-mongodb");
+  collection = database.collection("users");
 
-    console.log("Connected to MongoDB and 'users' collection created.");
+  console.log("Connected to MongoDB and 'users' collection created.");
 
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
-  } finally {
-    await client.close(); 
-  }
+  await client.db("admin").command({ ping: 1 });
+  console.log("Pinged your deployment. You successfully connected to MongoDB!");
 }
 
 connectToMongoDB().catch(console.dir);
