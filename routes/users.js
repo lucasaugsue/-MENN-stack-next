@@ -27,7 +27,7 @@ async function connectToMongoDB() {
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
-    // await client.close(); // Mantive o fechamento do cliente aqui, mas pode ser ajustado conforme a necessidade do seu aplicativo
+    await client.close(); 
   }
 }
 
@@ -70,6 +70,24 @@ router.get('/list', async function(req, res, next) {
     res.status(500).json({ error: err.message });
   }
 });
+
+router.get('/get-by-id/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await collection.findOne({ _id: new ObjectId(id) });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 router.put('/edit/:id', async function(req, res, next) {
   try {
