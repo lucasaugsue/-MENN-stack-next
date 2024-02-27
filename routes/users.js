@@ -1,9 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const router = express.Router();
+
 const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 
-// const uri = process.env.MONGODB_URI;
-const uri = "mongodb+srv://lucasaugsue:123*node*123@menn-stack-mongodb.ev4khmb.mongodb.net/?retryWrites=true&w=majority&appName=menn-stack-mongodb";
+const uri = process.env.MONGODB_URI;
 
 let collection;
 
