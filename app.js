@@ -6,16 +6,13 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
-var presentesRouter = require('./routes/presentes');
-var recadosRouter = require('./routes/recados');
-var confirmarPresencaRouter = require('./routes/confirmarPresenca');
 
 var app = express();
 
 const cors=require("cors");
 const corsOptions ={
    origin:'*', 
-   credentials:true,            //access-control-allow-credentials:true
+   credentials:true, //access-control-allow-credentials:true
    optionSuccessStatus:200,
 }
 
@@ -33,9 +30,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
-app.use('/presentes', presentesRouter);
-app.use('/recados', recadosRouter);
-app.use('/confirmar-presenca', confirmarPresencaRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

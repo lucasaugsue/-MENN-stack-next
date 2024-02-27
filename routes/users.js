@@ -1,89 +1,112 @@
 const express = require('express');
 const router = express.Router();
+const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
 
-/* postgres sql */
-require('dotenv').config();
-const { sql } = require('@vercel/postgres');
-const connectionString = process.env.POSTGRES_URL;
+// const uri = process.env.MONGODB_URI;
+const uri = "mongodb+srv://lucasaugsue:123*node*123@menn-stack-mongodb.ev4khmb.mongodb.net/?retryWrites=true&w=majority&appName=menn-stack-mongodb";
 
-router.get('/list', async function(req, res, next) {
-	try{
-		const result = await sql`select * from users`;
-		res.json(result.rows)
+let collection;
 
-	}catch(err) {
-		res.send(`Um erro aconteceu: ${err}`)
-	}
-});
-
-router.get('/by/:id', async function(req, res, next) {
-    const id = req.params.id;
-
-    try {
-        const result = await sql`SELECT * FROM users WHERE id = ${id}`;
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
-        }
-
-        res.json({ item: result.rows[0] });
-
-    } catch (err) {
-        res.status(500).json({ error: `Um erro aconteceu: ${err}` });
+async function connectToMongoDB() {
+  const client = new MongoClient(uri, {
+    serverApi: {
+      version: ServerApiVersion.v1,
+      strict: true,
+      deprecationErrors: true,
     }
-});
+  });
+
+  try {
+    await client.connect();
+
+    const database = client.db("menn-stack-mongodb");
+    collection = database.collection("users");
+
+    console.log("Connected to MongoDB and 'users' collection created.");
+
+    await client.db("admin").command({ ping: 1 });
+    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+  } finally {
+    // await client.close(); // Mantive o fechamento do cliente aqui, mas pode ser ajustado conforme a necessidade do seu aplicativo
+  }
+}
+
+connectToMongoDB().catch(console.dir);
 
 router.post('/create', async function(req, res, next) {
-    try {
-        const { nome, sexo, idade } = req.body;
-        const item = await sql`INSERT INTO users (sexo, idade, nome) VALUES (${sexo}, ${idade}, ${nome}) RETURNING *`;
-
-        res.status(201).json({
-            item: item.rows[0],
-            message: 'Criado com sucesso!'
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: `Um erro aconteceu: ${err}` });
+  try {
+    // Verificar se a coleção está definida
+    if (!collection) {
+      console.log("A coleção não está definida.");
+      return res.status(500).json({ error: 'Falha ao inserir usuário.' });
     }
+
+    const { nome } = req.body;
+
+    // Utilizando o método insertOne e capturando o resultado
+    const result = await collection.insertOne({ nome });
+
+    // Verificando se houve uma inserção bem-sucedida
+    if (result.acknowledged) {
+      res.status(201).json({
+        id: result.insertedId,
+        nome: nome, // Usando o nome diretamente da requisição, pois não é garantido que result.ops[0] exista
+      });
+    } else {
+      res.status(500).json({ error: 'Falha ao inserir usuário.' });
+    }
+  } catch (err) {
+    // Imprimir detalhes do erro no console
+    console.error("Erro durante a inserção:", err);
+    res.status(500).json({ error: 'Falha ao inserir usuário.' });
+  }
 });
 
-router.patch('/edit/:id', async function(req, res, next) {
-    const id = req.params.id;
-    const { nome, sexo, idade } = req.body;
+router.get('/list', async function(req, res, next) {
+  try {
+    const users = await collection.find().toArray();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-    try {
-        const result = await sql`UPDATE users SET nome = ${nome}, sexo = ${sexo}, idade = ${idade} WHERE id = ${id} RETURNING *`;
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
-        }
+router.put('/edit/:id', async function(req, res, next) {
+  try {
+    const { id } = req.params;
+    const { nome } = req.body;
 
-        res.json({ 
-            item: result.rows[0],
-            message: 'Editado com sucesso!'
-        });
+    const result = await collection.findOneAndUpdate({ _id: new ObjectId(id) }, { $set: { nome } });
 
-    } catch (err) {
-        res.status(500).json({ error: `Um erro aconteceu: ${err}` });
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
+
+    res.json({ message: 'Usuário editado com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.delete('/delete/:id', async function(req, res, next) {
-    const id = req.params.id;
+  try {
+    const { id } = req.params;
 
-    try {
-        const result = await sql`DELETE FROM users WHERE id = ${id} RETURNING *`;
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Usuário não encontrado.' });
-        }
+    const user = await collection.findOne({ _id: new ObjectId(id) });
 
-        res.json({ 
-            item: result.rows[0],
-            message: 'Deletado com sucesso!'
-        });
-
-    } catch (err) {
-        res.status(500).json({ error: `Um erro aconteceu: ${err}` });
+    if (!user) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
     }
-});
 
+    const result = await collection.findOneAndDelete({ _id: id });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado.' });
+    }
+
+    res.json({ message: 'Usuário deletado com sucesso.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 module.exports = router;
